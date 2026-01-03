@@ -180,51 +180,45 @@ class TestDatabase:
 class TestAIServiceUnit:
     """AI 服務單元測試（使用 Mock）"""
     
-    def test_mock_get_summary(self):
+    def test_mock_get_summary(self, mock_ai_service):
         """測試 Mock 摘要生成"""
-        mock_service = MockAIService()
-        summary = mock_service.get_summary("這是一段很長的測試內容，用來測試摘要功能是否正常運作")
+        summary = mock_ai_service.get_summary("這是一段很長的測試內容，用來測試摘要功能是否正常運作")
         
-        assert "摘要" in summary
+        assert "這是測試摘要" in summary
         assert len(summary) > 0
     
-    def test_mock_get_tags(self):
+    def test_mock_get_tags(self, mock_ai_service):
         """測試 Mock 標籤生成"""
-        mock_service = MockAIService()
-        tags = mock_service.get_tags("Python 程式設計入門")
+        tags = mock_ai_service.get_tags("Python 程式設計入門")
         
         assert "測試" in tags
         assert "," in tags  # 確認有多個標籤
     
-    def test_mock_search_notes(self):
+    def test_mock_search_notes(self, mock_ai_service):
         """測試 Mock 筆記搜尋"""
-        mock_service = MockAIService()
-        results = mock_service.search_notes("Python")
+        results = mock_ai_service.search_notes("Python")
         
         assert len(results) > 0
         assert "note_id" in results[0]
         assert "score" in results[0]
     
-    def test_mock_generate_rag_response(self):
+    def test_mock_generate_rag_response(self, mock_ai_service):
         """測試 Mock RAG 回答"""
-        mock_service = MockAIService()
-        answer = mock_service.generate_rag_response("什麼是 AI?", ["AI 是人工智慧"])
+        answer = mock_ai_service.generate_rag_response("什麼是 AI?", ["AI 是人工智慧"])
         
-        assert "什麼是 AI?" in answer
+        assert "這是 AI 回答" in answer
     
-    def test_mock_get_embedding(self):
+    def test_mock_get_embedding(self, mock_ai_service):
         """測試 Mock 向量生成"""
-        mock_service = MockAIService()
-        embedding = mock_service.get_embedding("測試文字")
+        embedding = mock_ai_service.get_embedding("測試文字")
         
         assert len(embedding) == 768
         assert all(isinstance(x, float) for x in embedding)
     
-    def test_mock_add_to_vector_store(self):
+    def test_mock_add_to_vector_store(self, mock_ai_service):
         """測試 Mock 加入向量資料庫"""
-        mock_service = MockAIService()
         # 應該不會拋出例外
-        mock_service.add_to_vector_store(1, "測試內容", "測試標題")
+        mock_ai_service.add_to_vector_store(1, "測試內容", "測試標題")
 
 
 # ============ 測試 Pydantic Models ============

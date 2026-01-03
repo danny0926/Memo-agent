@@ -438,21 +438,20 @@ class TestAPIs:
     @patch("main.ai_service.add_to_vector_store")
     @patch("main.ai_service.get_tags")
     @patch("main.ai_service.get_summary")
-    def test_create_note_api_invalid_input(self, mock_get_summary, mock_get_tags, mock_add_to_vector_store, client):
-        """測試建立筆記 API 時，輸入無效資料"""
+    def test_create_note_api_ai_service_error(self, mock_get_summary, mock_get_tags, mock_add_to_vector_store, client):
+        """測試建立筆記 API 時，AI 服務發生錯誤"""
         # 設定 mock 回傳值
-        mock_get_summary.return_value = "測試摘要"
+        mock_get_summary.side_effect = Exception("AI 服務發生錯誤")
         mock_get_tags.return_value = "測試, Python"
         mock_add_to_vector_store.return_value = None
 
         note_data = {
-            "title": "",  # 空標題
+            "title": "測試筆記",
             "content": "這是測試內容"
         }
         response = client.post("/notes/", json=note_data)
 
-        # 注意：FastAPI 預設不會對空字串驗證，除非有額外驗證
-        # 如果返回 200，表示需要在 NoteRequest 模型中加入驗證
-        # 這裡我們先檢查回應是否成功
-        assert response.status_code in [200, 422]
+        assert response.status_code == 500
+        assert "detail" in response.json()
+        assert response.json()["detail"] == "AI 服務發生錯誤"
 

@@ -1,5 +1,5 @@
 import os
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from openai import OpenAI
 import chromadb
 from dotenv import load_dotenv

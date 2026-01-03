@@ -1,6 +1,4 @@
 import os
-import json
-import math
 from typing import List, Dict, Any, Optional
 from openai import OpenAI
 import chromadb

@@ -264,6 +264,76 @@ class TestIntegration:
         assert len(answer) > 0
 
 
+import asyncio
+import httpx
+import pytest
+from database import Note
+from sqlmodel import SQLModel, Session
+from fastapi import FastAPI
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])
+
+# ============ 測試 API Endpoints (需要啟動 FastAPI 應用程式) ============
+@pytest.mark.asyncio
+class TestAPIs:
+    """API 端點測試（需要啟動 FastAPI 應用程式）"""
+
+    @pytest.fixture(scope="class")
+    def app(self):
+        """建立 FastAPI 應用程式實例"""
+        from main import app
+        return app
+
+    @pytest.fixture(scope="class")
+    async def client(self, app: FastAPI):
+        """建立測試用 HTTP 客戶端"""
+        async with httpx.AsyncClient(app=app, base_url="http://test") as client:
+            yield client
+
+    async def test_create_note_api(self, client: httpx.AsyncClient):
+        """測試建立筆記 API"""
+        note_data = {
+            "title": "測試筆記",
+            "content": "這是測試內容"
+        }
+        response = await client.post("/notes/", json=note_data)
+
+        assert response.status_code == 200
+        assert "message" in response.json()
+        assert response.json()["message"] == "筆記建立成功"
+        assert "id" in response.json()
+        assert "summary" in response.json()
+        assert "tags" in response.json()
+
+        # 驗證資料庫是否已寫入
+        from database import engine
+        SQLModel.metadata.create_all(engine)
+        with Session(engine) as session:
+            note = session.get(Note, response.json()["id"])
+            assert note is not None
+            assert note.title == "測試筆記"
+            assert note.content == "這是測試內容"
+
+    async def test_chat_api(self, client: httpx.AsyncClient):
+        """測試對話 API"""
+        chat_data = {
+            "query": "什麼是測試筆記？"
+        }
+        response = await client.post("/chat/", json=chat_data)
+
+        assert response.status_code == 200
+        assert "answer" in response.json()
+        assert "sources" in response.json()
+        assert isinstance(response.json()["sources"], list)
+
+        # 驗證是否有回答
+        assert len(response.json()["answer"]) > 0
+
+        # 驗證是否有參考資料
+        if len(response.json()["sources"]) > 0:
+            assert "id" in response.json()["sources"][0]
+            assert "title" in response.json()["sources"][0]
+            assert "summary" in response.json()["sources"][0]
+            assert "score" in response.json()["sources"][0]
 

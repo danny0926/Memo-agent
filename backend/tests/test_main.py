@@ -57,7 +57,7 @@ class TestDatabase:
             content="測試內容",
             summary="測試摘要",
             tags="Python, AI",
-            created_at=datetime.now(datetime.UTC)
+            created_at=datetime.now(timezone.utc)
         )
         
         assert note.title == "測試標題"

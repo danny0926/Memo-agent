@@ -367,7 +367,6 @@ if __name__ == "__main__":
     pytest.main([__file__, "-v"])
 
 # ============ 測試 API Endpoints (需要啟動 FastAPI 應用程式) ============
-@pytest.mark.skipif(SKIP_CHROMADB_TESTS, reason="chromadb 不支援 Python 3.14+")
 class TestAPIs:
     """API 端點測試（需要啟動 FastAPI 應用程式）"""
 

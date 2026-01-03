@@ -88,8 +88,9 @@ async def create_note(note: NoteRequest):
 @app.get("/notes/", response_model=List[NoteResponse])
 async def get_notes():
     """取得所有筆記清單（依時間排序）"""
+    from sqlmodel import select
     with get_session() as session:
-        notes = session.exec(Note.select().order_by(Note.created_at.desc())).all()
+        notes = session.exec(select(Note).order_by(Note.created_at.desc())).all()
         return [
             NoteResponse(
                 id=note.id,

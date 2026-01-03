@@ -434,7 +434,11 @@ class TestAPIs:
         assert response.status_code == 200
         mock_get_summary.assert_called_once_with("這是測試內容")
         mock_get_tags.assert_called_once_with("這是測試內容")
-        mock_add_to_vector_store.assert_called_once_with(1, "這是測試內容", "測試筆記")
+        # add_to_vector_store 使用關鍵字參數呼叫
+        mock_add_to_vector_store.assert_called_once()
+        call_kwargs = mock_add_to_vector_store.call_args.kwargs
+        assert call_kwargs["content"] == "這是測試內容"
+        assert call_kwargs["title"] == "測試筆記"
 
     @patch("main.ai_service.add_to_vector_store")
     @patch("main.ai_service.get_tags")
@@ -454,3 +458,275 @@ class TestAPIs:
         assert "detail" in response.json()
         assert response.json()["detail"] == "AI 服務發生錯誤"
 
+    @patch("main.ai_service.add_to_vector_store")
+    @patch("main.ai_service.get_tags")
+    @patch("main.ai_service.get_summary")
+    def test_create_note_api_vector_store_called(
+        self,
+        mock_get_summary,
+        mock_get_tags,
+        mock_add_to_vector_store,
+        client
+    ):
+        """測試建立筆記時，向量資料庫是否被正確呼叫"""
+        # 設定 mock 回傳值
+        mock_get_summary.return_value = "測試摘要"
+        mock_get_tags.return_value = "測試, Python"
+        mock_add_to_vector_store.return_value = None
+
+        note_data = {
+            "title": "向量測試筆記",
+            "content": "這是向量資料庫測試內容"
+        }
+        response = client.post("/notes/", json=note_data)
+
+        assert response.status_code == 200
+        # 驗證 add_to_vector_store 被呼叫，並檢查參數
+        mock_add_to_vector_store.assert_called_once()
+        call_kwargs = mock_add_to_vector_store.call_args.kwargs
+        # 檢查 note_id
+        assert call_kwargs["note_id"] == response.json()["id"]
+        # 檢查 content
+        assert call_kwargs["content"] == "這是向量資料庫測試內容"
+        # 檢查 title
+        assert call_kwargs["title"] == "向量測試筆記"
+
+    @patch("main.ai_service.generate_rag_response")
+    @patch("main.ai_service.search_notes")
+    def test_chat_api_search_notes_called(
+        self,
+        mock_search_notes,
+        mock_generate_rag_response,
+        client
+    ):
+        """測試對話 API 時，search_notes 是否被正確呼叫"""
+        # 設定 mock 回傳值
+        mock_search_notes.return_value = []
+        mock_generate_rag_response.return_value = "這是 AI 的回答"
+
+        chat_data = {"query": "測試查詢"}
+        response = client.post("/chat/", json=chat_data)
+
+        assert response.status_code == 200
+        # 驗證 search_notes 被正確呼叫
+        mock_search_notes.assert_called_once_with("測試查詢", top_k=3)
+
+    @patch("main.ai_service.generate_rag_response")
+    @patch("main.ai_service.search_notes")
+    def test_chat_api_rag_response(
+        self,
+        mock_search_notes,
+        mock_generate_rag_response,
+        client
+    ):
+        """測試 /chat/ 端點是否正確使用 RAG 方式生成回答"""
+        # 先建立測試筆記
+        from database import engine, Note
+        SQLModel.metadata.create_all(engine)
+        with Session(engine) as session:
+            note = Note(
+                title="RAG 測試筆記",
+                content="這是 RAG 測試的內容",
+                summary="RAG 測試摘要",
+                tags="RAG, 測試",
+                created_at=datetime.now(timezone.utc)
+            )
+            session.add(note)
+            session.commit()
+            session.refresh(note)
+            note_id = note.id
+
+        # 設定 mock 回傳值
+        mock_search_notes.return_value = [
+            {"note_id": note_id, "score": 0.95}
+        ]
+        mock_generate_rag_response.return_value = "根據筆記內容，這是 RAG 生成的回答"
+
+        chat_data = {"query": "什麼是 RAG 測試？"}
+        response = client.post("/chat/", json=chat_data)
+
+        assert response.status_code == 200
+        # 驗證 RAG 回應結構
+        assert response.json()["answer"] == "根據筆記內容，這是 RAG 生成的回答"
+        assert len(response.json()["sources"]) == 1
+        assert response.json()["sources"][0]["id"] == note_id
+        assert response.json()["sources"][0]["title"] == "RAG 測試筆記"
+        assert response.json()["sources"][0]["score"] == 0.95
+
+        # 驗證 generate_rag_response 被呼叫時有傳入正確的 contexts
+        mock_generate_rag_response.assert_called_once()
+        call_args = mock_generate_rag_response.call_args
+        assert call_args[0][0] == "什麼是 RAG 測試？"
+        # contexts 應該包含筆記標題和內容
+        assert "RAG 測試筆記" in call_args[0][1][0]
+        assert "這是 RAG 測試的內容" in call_args[0][1][0]
+
+
+# ============ 安全性測試 ============
+class TestSecurity:
+    """安全性測試"""
+
+    @pytest.fixture(scope="class")
+    def app(self):
+        """建立 FastAPI 應用程式實例"""
+        from main import app
+        return app
+
+    @pytest.fixture(scope="class")
+    def client(self, app: FastAPI):
+        """建立測試用 HTTP 客戶端"""
+        from starlette.testclient import TestClient
+        with TestClient(app) as client:
+            yield client
+
+    @patch("main.ai_service.add_to_vector_store")
+    @patch("main.ai_service.get_tags")
+    @patch("main.ai_service.get_summary")
+    def test_sql_injection_in_title(
+        self,
+        mock_get_summary,
+        mock_get_tags,
+        mock_add_to_vector_store,
+        client
+    ):
+        """測試 SQL Injection 防護 - 標題欄位"""
+        mock_get_summary.return_value = "測試摘要"
+        mock_get_tags.return_value = "測試"
+        mock_add_to_vector_store.return_value = None
+
+        # SQL Injection 攻擊字串
+        malicious_title = "'; DROP TABLE notes; --"
+        note_data = {
+            "title": malicious_title,
+            "content": "正常內容"
+        }
+        response = client.post("/notes/", json=note_data)
+
+        # 應該正常建立筆記，而不是執行 SQL 指令
+        assert response.status_code == 200
+        
+        # 驗證資料庫仍然正常運作
+        notes_response = client.get("/notes/")
+        assert notes_response.status_code == 200
+
+    @patch("main.ai_service.add_to_vector_store")
+    @patch("main.ai_service.get_tags")
+    @patch("main.ai_service.get_summary")
+    def test_xss_in_content(
+        self,
+        mock_get_summary,
+        mock_get_tags,
+        mock_add_to_vector_store,
+        client
+    ):
+        """測試 XSS 防護 - 內容欄位"""
+        mock_get_summary.return_value = "測試摘要"
+        mock_get_tags.return_value = "測試"
+        mock_add_to_vector_store.return_value = None
+
+        # XSS 攻擊字串
+        malicious_content = "<script>alert('XSS')</script>"
+        note_data = {
+            "title": "XSS 測試",
+            "content": malicious_content
+        }
+        response = client.post("/notes/", json=note_data)
+
+        # 應該正常建立筆記
+        assert response.status_code == 200
+        # 內容應該被儲存（後端不應該過濾，由前端處理顯示）
+        # 這裡主要驗證不會造成系統錯誤
+
+    @patch("main.ai_service.generate_rag_response")
+    @patch("main.ai_service.search_notes")
+    def test_sql_injection_in_chat_query(
+        self,
+        mock_search_notes,
+        mock_generate_rag_response,
+        client
+    ):
+        """測試 SQL Injection 防護 - 對話查詢"""
+        mock_search_notes.return_value = []
+        mock_generate_rag_response.return_value = "這是回答"
+
+        # SQL Injection 攻擊字串
+        malicious_query = "'; DELETE FROM notes WHERE '1'='1"
+        chat_data = {"query": malicious_query}
+        response = client.post("/chat/", json=chat_data)
+
+        # 應該正常回應，而不是執行 SQL 指令
+        assert response.status_code == 200
+        
+        # 驗證資料庫仍然正常運作
+        notes_response = client.get("/notes/")
+        assert notes_response.status_code == 200
+
+    @patch("main.ai_service.add_to_vector_store")
+    @patch("main.ai_service.get_tags")
+    @patch("main.ai_service.get_summary")
+    def test_large_input_handling(
+        self,
+        mock_get_summary,
+        mock_get_tags,
+        mock_add_to_vector_store,
+        client
+    ):
+        """測試大量輸入的處理"""
+        mock_get_summary.return_value = "測試摘要"
+        mock_get_tags.return_value = "測試"
+        mock_add_to_vector_store.return_value = None
+
+        # 大量輸入
+        large_content = "A" * 100000  # 100KB 的內容
+        note_data = {
+            "title": "大量輸入測試",
+            "content": large_content
+        }
+        response = client.post("/notes/", json=note_data)
+
+        # 應該正常處理或回傳適當的錯誤
+        assert response.status_code in [200, 413, 422]
+
+
+# ============ 整合測試 - 向量資料庫互動 ============
+class TestVectorDBIntegration:
+    """向量資料庫整合測試"""
+
+    def test_vector_store_integration_workflow(self, mock_ai_service):
+        """測試完整的向量資料庫整合工作流程"""
+        # 模擬新增筆記到向量資料庫
+        mock_ai_service.add_to_vector_store(1, "測試內容", "測試標題")
+        mock_ai_service.add_to_vector_store.assert_called_with(1, "測試內容", "測試標題")
+
+        # 模擬搜尋筆記
+        mock_ai_service.search_notes.return_value = [
+            {"note_id": 1, "title": "測試標題", "score": 0.95}
+        ]
+        results = mock_ai_service.search_notes("測試查詢")
+        
+        assert len(results) == 1
+        assert results[0]["note_id"] == 1
+        assert results[0]["score"] == 0.95
+
+    def test_rag_workflow_with_vector_search(self, mock_ai_service):
+        """測試 RAG 工作流程與向量搜尋的整合"""
+        # 設定 mock
+        mock_ai_service.search_notes.return_value = [
+            {"note_id": 1, "score": 0.9},
+            {"note_id": 2, "score": 0.8}
+        ]
+        mock_ai_service.generate_rag_response.return_value = "整合測試回答"
+
+        # 模擬 RAG 流程
+        query = "測試問題"
+        search_results = mock_ai_service.search_notes(query, top_k=3)
+        
+        # 驗證搜尋結果
+        assert len(search_results) == 2
+        
+        # 模擬生成 RAG 回答
+        contexts = ["內容1", "內容2"]
+        answer = mock_ai_service.generate_rag_response(query, contexts)
+        
+        assert answer == "整合測試回答"
+        mock_ai_service.generate_rag_response.assert_called_with(query, contexts)

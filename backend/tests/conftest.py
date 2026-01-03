@@ -4,13 +4,22 @@ Pytest 設定檔
 import os
 import sys
 import pytest
+from unittest.mock import MagicMock
 
 # 設定測試環境變數
 os.environ["GEMINI_API_KEY"] = "test_api_key_for_testing"
+os.environ["OPENAI_API_KEY"] = "test_openai_api_key_for_testing"
 os.environ["DATA_DIR"] = "./test_data"
 
 # 確保可以 import backend 模組
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+
+# Mock chromadb 以避免 Python 3.14 相容性問題
+# chromadb 依賴 onnxruntime，而 onnxruntime 還不支援 Python 3.14
+if sys.version_info >= (3, 14):
+    mock_chromadb = MagicMock()
+    mock_chromadb.PersistentClient.return_value.get_or_create_collection.return_value = MagicMock()
+    sys.modules['chromadb'] = mock_chromadb
 
 
 @pytest.fixture(scope="session", autouse=True)

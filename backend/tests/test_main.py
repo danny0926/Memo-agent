@@ -2,12 +2,15 @@ import pytest
 import os
 import sys
 import httpx
-from datetime import datetime
+from datetime import datetime, timezone
 
 from sqlmodel import SQLModel, Session
 from fastapi import FastAPI
 
 from database import Note
+
+# 檢測 Python 版本，判斷是否跳過需要 chromadb 的測試
+SKIP_CHROMADB_TESTS = sys.version_info >= (3, 14)
 
 # 設定測試環境變數
 os.environ["GEMINI_API_KEY"] = "test_api_key"
@@ -186,7 +189,7 @@ class TestUtilityFunctions:
     def test_datetime_utc(self):
         """測試 UTC 時間"""
         
-        now = datetime.now(datetime.timezone.utc)
+        now = datetime.now(timezone.utc)
         assert now.tzinfo is not None
 
 
@@ -269,6 +272,7 @@ if __name__ == "__main__":
     pytest.main([__file__, "-v"])
 
 # ============ 測試 API Endpoints (需要啟動 FastAPI 應用程式) ============
+@pytest.mark.skipif(SKIP_CHROMADB_TESTS, reason="chromadb 不支援 Python 3.14+")
 class TestAPIs:
     """API 端點測試（需要啟動 FastAPI 應用程式）"""
 

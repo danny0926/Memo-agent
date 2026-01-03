@@ -2,12 +2,12 @@ fastapi>=0.104.0
 uvicorn[standard]>=0.24.0
 sqlmodel>=0.0.14
 openai>=1.0.0
-pydantic>=2.0.0  # 確保相容性，但允許更新
+pydantic>=2.0.0
 pydantic-settings>=2.0.0
 python-multipart>=0.0.6
 python-dotenv>=1.0.0
 numpy
 google-generativeai
 requests
-chromadb>=0.4.0  # 更新到較新的版本
+chromadb>=0.4.0
 pytest-asyncio

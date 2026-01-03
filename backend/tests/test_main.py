@@ -1,13 +1,10 @@
 import pytest
 import os
 import sys
-import asyncio
 import httpx
-from unittest.mock import patch, MagicMock
+from unittest.mock import MagicMock
 from datetime import datetime, timezone
 
-from pydantic import BaseModel
-from pydantic_settings import BaseSettings
 from sqlmodel import SQLModel, Session
 from fastapi import FastAPI
 
@@ -52,8 +49,6 @@ class TestDatabase:
     
     def test_note_model_creation(self):
         """測試 Note 模型建立"""
-        from database import Note
-        from datetime import datetime
         
         note = Note(
             title="測試標題",
@@ -70,8 +65,6 @@ class TestDatabase:
     
     def test_note_model_fields(self):
         """測試 Note 模型欄位型態"""
-        from database import Note
-        from sqlmodel import SQLModel
         
         # 確認 Note 繼承自 SQLModel
         assert issubclass(Note, SQLModel)
@@ -143,9 +136,8 @@ class TestPydanticModels:
     
     def test_note_request_model(self):
         """測試 NoteRequest 模型"""
-        from pydantic import BaseModel
-        from pydantic_settings import BaseSettings
         
+        from pydantic import BaseModel
         class NoteRequest(BaseModel):
             title: str
             content: str
@@ -161,8 +153,8 @@ class TestPydanticModels:
     
     def test_chat_request_model(self):
         """測試 ChatRequest 模型"""
-        from pydantic import BaseModel
         
+        from pydantic import BaseModel
         class ChatRequest(BaseModel):
             query: str
         

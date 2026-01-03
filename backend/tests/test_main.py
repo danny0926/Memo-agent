@@ -312,6 +312,13 @@ class TestAPIs:
             assert note.title == "測試筆記"
             assert note.content == "這是測試內容"
 
+    async def test_get_notes_api(self, client: httpx.AsyncClient):
+        """測試取得筆記列表 API"""
+        response = await client.get("/notes/")
+
+        assert response.status_code == 200
+        assert isinstance(response.json(), list)
+
     async def test_chat_api(self, client: httpx.AsyncClient):
         """測試對話 API"""
         chat_data = {

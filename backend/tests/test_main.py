@@ -134,6 +134,7 @@ class TestPydanticModels:
     def test_note_request_model(self):
         """測試 NoteRequest 模型"""
         from pydantic import BaseModel
+        from pydantic_settings import BaseSettings
         
         class NoteRequest(BaseModel):
             title: str
@@ -276,6 +277,9 @@ if __name__ == "__main__":
 
 # ============ 測試 API Endpoints (需要啟動 FastAPI 應用程式) ============
 @pytest.mark.asyncio
+class Settings(BaseSettings):
+    api_url: str = "http://localhost:8000"
+
 class TestAPIs:
     """API 端點測試（需要啟動 FastAPI 應用程式）"""
 

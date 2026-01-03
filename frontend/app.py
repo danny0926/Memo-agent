@@ -24,10 +24,11 @@ if st.button("新增"):
 st.header("所有筆記")
 notes = get_notes()
 for note in notes:
-    st.write(note)
+    st.write(note["title"])
+    st.write(note["content"])
 
 st.header("聊天")
 query = st.text_input("問題")
-if st.button("送出"):
-    response = chat(query)
-    st.write(response)
+if st.button("查詢"):
+    result = chat(query)
+    st.write(result["answer"])

@@ -455,3 +455,14 @@ class TestAPIs:
         mock_get_summary.assert_called_once_with("這是測試內容")
         mock_get_tags.assert_called_once_with("這是測試內容")
 
+    async def test_create_note_api_invalid_input(self, client: httpx.AsyncClient):
+        """測試建立筆記 API 時，輸入無效資料"""
+        note_data = {
+            "title": "",  # 空標題
+            "content": "這是測試內容"
+        }
+        response = await client.post("/notes/", json=note_data)
+
+        assert response.status_code == 422  # 驗證是否回傳 422 錯誤
+        assert "detail" in response.json()  # 驗證是否有 detail 訊息
+

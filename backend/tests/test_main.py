@@ -2,8 +2,7 @@ import pytest
 import os
 import sys
 import httpx
-from unittest.mock import MagicMock
-from datetime import datetime, timezone
+from datetime import datetime
 
 from sqlmodel import SQLModel, Session
 from fastapi import FastAPI
@@ -186,9 +185,8 @@ class TestUtilityFunctions:
     
     def test_datetime_utc(self):
         """測試 UTC 時間"""
-        from datetime import datetime, timezone
         
-        now = datetime.now(timezone.utc)
+        now = datetime.now(datetime.timezone.utc)
         assert now.tzinfo is not None
 
 
@@ -271,10 +269,6 @@ if __name__ == "__main__":
     pytest.main([__file__, "-v"])
 
 # ============ 測試 API Endpoints (需要啟動 FastAPI 應用程式) ============
-@pytest.mark.asyncio
-class Settings(BaseSettings):
-    api_url: str = "http://localhost:8000"
-
 class TestAPIs:
     """API 端點測試（需要啟動 FastAPI 應用程式）"""
 

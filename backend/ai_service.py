@@ -3,6 +3,7 @@ import json
 import math
 from typing import List, Dict, Any, Optional
 from openai import OpenAI
+import chromadb
 
 
 class SimpleVectorStore:
@@ -115,12 +116,12 @@ class AIService:
         self.client = OpenAI(api_key=api_key)
         self.chat_model = "gpt-4o-mini"  # 使用較經濟的模型
         self.embedding_model = "text-embedding-3-small"
-        
         # 設定向量資料庫
         data_dir = os.environ.get("DATA_DIR", "./data")
-        vector_store_path = os.path.join(data_dir, "vector_store")
-        self.vector_store = SimpleVectorStore(vector_store_path)
-        print(f"使用簡單的 JSON 向量儲存，路徑: {vector_store_path}")
+        chroma_path = os.path.join(data_dir, "chroma")
+        self.chroma_client = chromadb.PersistentClient(path=chroma_path)
+        self.notes_collection = self.chroma_client.get_or_create_collection(name="notes")
+        print(f"使用 ChromaDB 向量儲存，路徑: {chroma_path}")
     
     def get_summary(self, content: str) -> str:
         """使用 OpenAI 生成摘要（約 50-100 字）"""
@@ -170,7 +171,7 @@ class AIService:
         """將筆記內容加入向量資料庫"""
         try:
             embedding = self.get_embedding(content)
-            self.vector_store.add(
+            self.notes_collection.add(
                 ids=[str(note_id)],
                 embeddings=[embedding],
                 metadatas=[{"note_id": note_id, "title": title}],
@@ -184,8 +185,8 @@ class AIService:
         """語意搜尋筆記"""
         try:
             query_embedding = self.get_embedding(query)
-            results = self.vector_store.query(
-                query_embedding=query_embedding,
+            results = self.notes_collection.query(
+                query_embeddings=[query_embedding],
                 n_results=top_k
             )
             
@@ -207,8 +208,6 @@ class AIService:
     
     def generate_rag_response(self, query: str, contexts: List[str]) -> str:
         """使用 RAG 方式生成回答"""
-        context_text = "\n\n---\n\n".join(contexts) if contexts else "（無相關參考資料）"
-        
         try:
             response = self.client.chat.completions.create(
                 model=self.chat_model,
@@ -219,7 +218,7 @@ class AIService:
                     },
                     {
                         "role": "user", 
-                        "content": f"參考資料：\n{context_text}\n\n使用者問題：{query}"
+                        "content": f"參考資料：\n{contexts}\n\n使用者問題：{query}"
                     }
                 ],
                 max_tokens=1000

@@ -1,0 +1,46 @@
+# Aider
+.aider*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+*.egg-info/
+dist/
+build/
+.eggs/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+*.db
+*.sqlite3
+data/
+
+# 排除 aider-main（這是參考用的第三方代碼）
+aider-main/
+
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/

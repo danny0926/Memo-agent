@@ -1,4 +1,5 @@
 from sqlmodel import SQLModel, Field
+from datetime import datetime
 from typing import Optional
 
 class Note(SQLModel, table=True):
@@ -7,7 +8,7 @@ class Note(SQLModel, table=True):
     content: str
     summary: str
     tags: str
-    created_at: str
+    created_at: datetime
 
     class Config:
         table_name = "notes"

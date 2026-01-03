@@ -1,7 +1,17 @@
 import pytest
 import os
 import sys
-from unittest.mock import Mock, patch, MagicMock
+import asyncio
+import httpx
+from unittest.mock import patch, MagicMock
+from datetime import datetime, timezone
+
+from pydantic import BaseModel
+from pydantic_settings import BaseSettings
+from sqlmodel import SQLModel, Session
+from fastapi import FastAPI
+
+from database import Note
 
 # 設定測試環境變數
 os.environ["GEMINI_API_KEY"] = "test_api_key"
@@ -264,13 +274,6 @@ class TestIntegration:
         answer = mock_service.generate_rag_response(query, contexts)
         assert len(answer) > 0
 
-
-import asyncio
-import httpx
-import pytest
-from database import Note
-from sqlmodel import SQLModel, Session
-from fastapi import FastAPI
 
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

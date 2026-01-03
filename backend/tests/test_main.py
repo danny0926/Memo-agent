@@ -1,7 +1,6 @@
 import pytest
 import os
 import sys
-import httpx
 from datetime import datetime, timezone
 
 from sqlmodel import SQLModel, Session

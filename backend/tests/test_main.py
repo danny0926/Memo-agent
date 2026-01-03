@@ -80,6 +80,100 @@ class TestDatabase:
         assert "summary" in field_names
         assert "tags" in field_names
         assert "created_at" in field_names
+    
+    def test_create_note(self):
+        """測試新增筆記"""
+        from database import engine
+        SQLModel.metadata.create_all(engine)
+        with Session(engine) as session:
+            note = Note(
+                title="測試新增",
+                content="測試內容",
+                summary="測試摘要",
+                tags="測試,新增",
+                created_at=datetime.now(timezone.utc)
+            )
+            session.add(note)
+            session.commit()
+            session.refresh(note)
+            
+            assert note.id is not None
+            assert note.title == "測試新增"
+    
+    def test_read_note(self):
+        """測試讀取筆記"""
+        from database import engine
+        SQLModel.metadata.create_all(engine)
+        with Session(engine) as session:
+            # 先建立一個筆記
+            note = Note(
+                title="測試讀取",
+                content="測試內容",
+                summary="測試摘要",
+                tags="測試,讀取",
+                created_at=datetime.now(timezone.utc)
+            )
+            session.add(note)
+            session.commit()
+            session.refresh(note)
+            
+            # 讀取筆記
+            retrieved_note = session.get(Note, note.id)
+            assert retrieved_note is not None
+            assert retrieved_note.title == "測試讀取"
+    
+    def test_update_note(self):
+        """測試更新筆記"""
+        from database import engine
+        SQLModel.metadata.create_all(engine)
+        with Session(engine) as session:
+            # 先建立一個筆記
+            note = Note(
+                title="測試更新",
+                content="測試內容",
+                summary="測試摘要",
+                tags="測試,更新",
+                created_at=datetime.now(timezone.utc)
+            )
+            session.add(note)
+            session.commit()
+            session.refresh(note)
+            
+            # 更新筆記
+            note.title = "更新後的標題"
+            session.add(note)
+            session.commit()
+            session.refresh(note)
+            
+            # 讀取更新後的筆記
+            updated_note = session.get(Note, note.id)
+            assert updated_note is not None
+            assert updated_note.title == "更新後的標題"
+    
+    def test_delete_note(self):
+        """測試刪除筆記"""
+        from database import engine
+        SQLModel.metadata.create_all(engine)
+        with Session(engine) as session:
+            # 先建立一個筆記
+            note = Note(
+                title="測試刪除",
+                content="測試內容",
+                summary="測試摘要",
+                tags="測試,刪除",
+                created_at=datetime.now(timezone.utc)
+            )
+            session.add(note)
+            session.commit()
+            session.refresh(note)
+            
+            # 刪除筆記
+            session.delete(note)
+            session.commit()
+            
+            # 嘗試讀取已刪除的筆記
+            deleted_note = session.get(Note, note.id)
+            assert deleted_note is None
 
 
 # ============ 測試 AI Service Unit ============

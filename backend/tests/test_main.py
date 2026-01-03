@@ -21,31 +21,6 @@ os.environ["DATA_DIR"] = "./test_data"
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 
-# ============ Mock Classes ============
-class MockAIService:
-    """Mock AI 服務，避免呼叫真實 API"""
-    
-    def get_summary(self, content: str) -> str:
-        return f"摘要: {content[:20]}..."
-    
-    def get_tags(self, content: str) -> str:
-        return "測試, Python, AI"
-    
-    def get_embedding(self, text: str):
-        return [0.1] * 768
-    
-    def add_to_vector_store(self, note_id: int, content: str, title: str):
-        pass
-    
-    def search_notes(self, query: str, top_k: int = 3):
-        return [
-            {"note_id": 1, "title": "測試筆記", "score": 0.95}
-        ]
-    
-    def generate_rag_response(self, query: str, contexts):
-        return f"這是針對「{query}」的回答"
-
-
 # ============ 測試 Database Model ============
 class TestDatabase:
     """資料庫模組測試"""
@@ -324,36 +299,33 @@ class TestAPIResponseFormat:
 class TestIntegration:
     """整合測試"""
     
-    def test_full_note_workflow(self):
+    def test_full_note_workflow(self, mock_ai_service):
         """測試完整筆記工作流程"""
         # 模擬建立筆記
-        mock_service = MockAIService()
         
         # 1. 生成摘要
         content = "Python 是一種簡單易學的程式語言"
-        summary = mock_service.get_summary(content)
+        summary = mock_ai_service.get_summary(content)
         assert len(summary) > 0
         
         # 2. 生成標籤
-        tags = mock_service.get_tags(content)
+        tags = mock_ai_service.get_tags(content)
         assert "," in tags
         
         # 3. 生成向量
-        embedding = mock_service.get_embedding(content)
+        embedding = mock_ai_service.get_embedding(content)
         assert len(embedding) == 768
     
-    def test_full_chat_workflow(self):
+    def test_full_chat_workflow(self, mock_ai_service):
         """測試完整對話工作流程"""
-        mock_service = MockAIService()
-        
         # 1. 搜尋筆記
         query = "什麼是 Python?"
-        results = mock_service.search_notes(query)
+        results = mock_ai_service.search_notes(query)
         assert len(results) > 0
         
         # 2. 生成回答
         contexts = ["Python 是一種程式語言"]
-        answer = mock_service.generate_rag_response(query, contexts)
+        answer = mock_ai_service.generate_rag_response(query, contexts)
         assert len(answer) > 0
 
 

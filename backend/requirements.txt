@@ -1,0 +1,3 @@
+sqlmodel
+google-generativeai
+chromadb

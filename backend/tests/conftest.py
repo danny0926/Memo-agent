@@ -23,6 +23,8 @@ def setup_test_environment():
     
     # 清理測試資料
     import shutil
+    from database import engine
+    engine.dispose()  # 關閉資料庫連線
     if os.path.exists("./test_data"):
         shutil.rmtree("./test_data")
 

@@ -89,7 +89,7 @@ async def create_note(note: NoteRequest):
 async def get_notes():
     """取得所有筆記清單（依時間排序）"""
     with get_session() as session:
-        notes = session.query(Note).order_by(Note.created_at.desc()).all()
+        notes = session.exec(Note.select().order_by(Note.created_at.desc())).all()
         return [
             NoteResponse(
                 id=note.id,

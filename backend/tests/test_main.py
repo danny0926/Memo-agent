@@ -8,6 +8,7 @@ from sqlmodel import SQLModel, Session
 from fastapi import FastAPI
 
 from database import Note
+from unittest.mock import patch
 
 # 檢測 Python 版本，判斷是否跳過需要 chromadb 的測試
 SKIP_CHROMADB_TESTS = sys.version_info >= (3, 14)
@@ -340,4 +341,23 @@ class TestAPIs:
             assert "title" in response.json()["sources"][0]
             assert "summary" in response.json()["sources"][0]
             assert "score" in response.json()["sources"][0]
+
+    @patch("main.ai_service.get_summary")
+    @patch("main.ai_service.get_tags")
+    async def test_create_note_api_ai_service_called(
+        self,
+        mock_get_tags,
+        mock_get_summary,
+        client: httpx.AsyncClient
+    ):
+        """測試建立筆記 API 時 AI 服務是否被呼叫"""
+        note_data = {
+            "title": "測試筆記",
+            "content": "這是測試內容"
+        }
+        response = await client.post("/notes/", json=note_data)
+
+        assert response.status_code == 200
+        mock_get_summary.assert_called_once_with("這是測試內容")
+        mock_get_tags.assert_called_once_with("這是測試內容")
 

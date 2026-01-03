@@ -434,16 +434,15 @@ class TestAPIs:
         assert response.status_code == 200
         mock_get_summary.assert_called_once_with("這是測試內容")
         mock_get_tags.assert_called_once_with("這是測試內容")
+        mock_add_to_vector_store.assert_called_once_with(1, "這是測試內容", "測試筆記")
 
     @patch("main.ai_service.add_to_vector_store")
     @patch("main.ai_service.get_tags")
     @patch("main.ai_service.get_summary")
     def test_create_note_api_ai_service_error(self, mock_get_summary, mock_get_tags, mock_add_to_vector_store, client):
         """測試建立筆記 API 時，AI 服務發生錯誤"""
-        # 設定 mock 回傳值
+        # 設定 mock 行為
         mock_get_summary.side_effect = Exception("AI 服務發生錯誤")
-        mock_get_tags.return_value = "測試, Python"
-        mock_add_to_vector_store.return_value = None
 
         note_data = {
             "title": "測試筆記",

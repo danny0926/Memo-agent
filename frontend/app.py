@@ -72,6 +72,54 @@ with st.sidebar:
                     st.info(f"🏷️ 標籤: {result.get('tags', 'N/A')}")
         else:
             st.warning("請填寫標題和內容")
+    
+    st.divider()
+    
+    # PDF 上傳功能
+    st.header("📄 上傳 PDF")
+    uploaded_files = st.file_uploader(
+        "選擇 PDF 檔案",
+        type=['pdf'],
+        accept_multiple_files=True,
+        help="支援批次上傳多個 PDF 檔案"
+    )
+    
+    if uploaded_files:
+        st.write(f"已選擇 {len(uploaded_files)} 個檔案")
+        
+        if st.button("📤 上傳並建立筆記", type="secondary", use_container_width=True):
+            progress_bar = st.progress(0)
+            status_text = st.empty()
+            
+            success_count = 0
+            error_count = 0
+            
+            for i, uploaded_file in enumerate(uploaded_files):
+                status_text.text(f"處理中: {uploaded_file.name}")
+                progress_bar.progress((i + 1) / len(uploaded_files))
+                
+                try:
+                    files = {"file": (uploaded_file.name, uploaded_file.getvalue(), "application/pdf")}
+                    response = requests.post(
+                        f"{API_URL}/upload-pdf/",
+                        files=files,
+                        timeout=120
+                    )
+                    
+                    if response.status_code == 200:
+                        success_count += 1
+                        result = response.json()
+                        st.success(f"✅ {uploaded_file.name}: 已建立筆記 (ID: {result['id']})")
+                    else:
+                        error_count += 1
+                        st.error(f"❌ {uploaded_file.name}: {response.json().get('detail', '未知錯誤')}")
+                except Exception as e:
+                    error_count += 1
+                    st.error(f"❌ {uploaded_file.name}: {str(e)}")
+            
+            progress_bar.empty()
+            status_text.empty()
+            st.info(f"完成！成功: {success_count}，失敗: {error_count}")
 
 # 主頁面 - 分成兩個 Tab
 tab1, tab2 = st.tabs(["💬 AI 對話", "📚 所有筆記"])
@@ -136,7 +184,4 @@ with tab2:
                 st.markdown(f"**摘要:** {note['summary']}")
                 st.markdown(f"**標籤:** {note['tags']}")
                 st.markdown(f"**建立時間:** {note['created_at']}")
-                st.divider()
-                st.markdown("**內容:**")
-                st.markdown(note['content'])
 
